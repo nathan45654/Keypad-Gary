@@ -7,17 +7,29 @@
  Copyright (c) 2019 Ha Thach for Adafruit Industries
  All text above, and the splash screen below must be included in
  any redistribution
-*********************************************************************/
+ *********************************************************************/
 
 #include <Arduino.h>
 #include "Adafruit_TinyUSB.h"
 #include "Keypad.h"
 #include "Button.h"
 #include <Adafruit_NeoPixel.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7789.h>
+#include <SPI.h>
 
 #define NUMPIXELS 1
 #define PIXELS_PIN 8
 Adafruit_NeoPixel pixels(NUMPIXELS, PIXELS_PIN);
+
+// ST7789 Display pins for nRF52840 Feather Express
+// Hardware SPI pins: MOSI = 25, MISO = 24, SCK = 26
+#define TFT_CS   27    // Chip Select
+#define TFT_RST  28    // Reset
+#define TFT_DC   29    // Data/Command
+
+// Initialize ST7789 display (76x284 resolution)
+Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
 Button buttons[] = {
     Button(5, 10, HIGH),
@@ -47,6 +59,20 @@ void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, LOW);
     #endif
+
+    // Initialize SPI for the display
+    SPI.begin();
+    
+    // Initialize ST7789 display
+    tft.init(76, 284);  // 76x284 resolution
+    tft.setRotation(0);  // Set rotation if needed
+    tft.fillScreen(ST77XX_BLACK);  // Clear screen to black
+    
+    // Display "Hello World"
+    tft.setCursor(10, 140);  // Center-ish position
+    tft.setTextSize(1);  // Text size
+    tft.setTextColor(ST77XX_WHITE);  // White text
+    tft.println("Hello World!");
 
     // Set up pin as input
     // pinMode(5, buttonActiveState ? INPUT_PULLDOWN : INPUT_PULLUP);
