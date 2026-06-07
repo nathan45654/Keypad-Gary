@@ -12,15 +12,16 @@ private:
     Adafruit_USBD_HID _usb_hid;
     static const uint8_t _desc_hid_report[];
     static void hid_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize);
-
+    uint8_t _press_delay{ 5 };
+    uint8_t polling_interval_ms{ 2 };
 public:
     Keypad(void);
     void begin(void);
     void end(void);
     size_t write(uint8_t k);
     size_t write_with_modifier(uint8_t modifier, uint8_t keycode);
-    size_t press(uint8_t k);
-    size_t release(uint8_t k);
+    void write_string(const char* str);
+    size_t press(char c);
     void releaseAll(void);
 };
 

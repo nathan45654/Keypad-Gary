@@ -1,4 +1,3 @@
-
 #include <Adafruit_TinyUSB.h>
 #include  "Keypad.h"
 
@@ -34,7 +33,7 @@ void Keypad::begin(void)
 
     // Setup HID
     _usb_hid.setBootProtocol(HID_ITF_PROTOCOL_KEYBOARD);
-    _usb_hid.setPollInterval(2);
+    _usb_hid.setPollInterval(polling_interval_ms);
     _usb_hid.setReportDescriptor(_desc_hid_report, sizeof(_desc_hid_report));
     _usb_hid.setStringDescriptor("TinyUSB Keyboard");
 
@@ -46,7 +45,7 @@ void Keypad::begin(void)
     // If already enumerated, additional class driverr begin() e.g msc, hid, midi won't take effect until re-enumeration
     if (TinyUSBDevice.mounted()) {
         TinyUSBDevice.detach();
-        delay(10);
+        delay(_press_delay);
         TinyUSBDevice.attach();
     }
 }
@@ -55,15 +54,20 @@ void Keypad::end(void)
 {
 }
   
-size_t Keypad::press(uint8_t k) 
+size_t Keypad::press(char c) 
 {
-  	// how to map string to keycode?  
+  	_usb_hid.keyboardPress(0, c);
+    delay(_press_delay);
+
+    return 1;
 }
 
 void Keypad::releaseAll(void)
 {
     uint8_t none[6] = {0,0,0,0,0,0};
     _usb_hid.keyboardReport(0, 0, none);
+    delay(_press_delay);
+
 }
 
 size_t Keypad::write(uint8_t keycode)
@@ -82,7 +86,7 @@ size_t Keypad::write(uint8_t keycode)
     _usb_hid.keyboardReport(0, 0, keys);
 
     // short hold, then release
-    delay(10);
+    delay(_press_delay);
 	releaseAll();
     return 1;
 }
@@ -103,9 +107,61 @@ size_t Keypad::write_with_modifier(uint8_t modifier, uint8_t keycode) {
     _usb_hid.keyboardReport(0, modifier, keys);
 
     // short hold, then release
-    delay(10);
+    delay(_press_delay);
 	releaseAll();
     return 1;
 }
   
+// helper: map ASCII char to HID keycode and modifier (modifier passed back by reference)
+static uint8_t ascii_to_hid(char c, uint8_t &modifier)
+{
+    modifier = 0;
+
+    if (c >= 'a' && c <= 'z') {
+        return HID_KEY_A + (c - 'a');
+    }
+    if (c >= 'A' && c <= 'Z') {
+        modifier = HID_MODIFIER_SHIFT_LEFT;
+        return HID_KEY_A + (c - 'A');
+    }
+    if (c >= '1' && c <= '9') {
+        return HID_KEY_1 + (c - '1');
+    }
+    if (c == '0') return HID_KEY_0;
+    if (c == ' ') return HID_KEY_SPACE;
+    if (c == '\n' || c == '\r') return HID_KEY_ENTER;
+    if (c == '.') return HID_KEY_PERIOD;
+    if (c == ',') return HID_KEY_COMMA;
+    if (c == '-') return HID_KEY_MINUS;
+    if (c == '_') { modifier = HID_MODIFIER_SHIFT_LEFT; return HID_KEY_MINUS; }
+    if (c == '!') { modifier = HID_MODIFIER_SHIFT_LEFT; return HID_KEY_1; }
+    if (c == '?') { modifier = HID_MODIFIER_SHIFT_LEFT; return HID_KEY_SLASH; }
+    if (c == ';') return HID_KEY_SEMICOLON;
+    if (c == ':') { modifier = HID_MODIFIER_SHIFT_LEFT; return HID_KEY_SEMICOLON; }
+    // add more mappings as needed
+
+    return 0; // unsupported
+}
+
+void Keypad::write_string(const char* str)
+{
+    if (!str) return;
+
+    for (const char *p = str; *p != '\0'; ++p) {
+        uint8_t mod = 0;
+        uint8_t key = ascii_to_hid(*p, mod);
+        if (!key) {
+            // unsupported char -> short pause and continue
+        }
+
+        if (mod) {
+            write_with_modifier(mod, key);
+        } else {
+            write(key);
+        }
+    }
+
+    // ensure all keys released
+    releaseAll();
+}
 // Output report callback for LED indicator such as Caplocks

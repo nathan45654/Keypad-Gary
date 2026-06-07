@@ -8,6 +8,7 @@ public:
     Button(int pin, unsigned long debounceTime = 50, bool activeState = LOW);
     void setPullup(bool enable);
     void setActiveState(bool activeState);
+    int Pin() const;
 
     void update();             // call this every loop() cycle
     bool isPressed() const;    // current state
@@ -29,7 +30,6 @@ private:
     unsigned long _lastDebounceTime;
     unsigned long _debounceDelay;
     bool _activeState;
-
     // callbacks
     void (*_onPress)();
     void (*_onRelease)();

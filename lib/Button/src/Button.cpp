@@ -25,6 +25,10 @@ void Button::setActiveState(bool activeState)
     _activeState = activeState;
 }
 
+int Button::Pin() const {
+    return _pin;
+}
+
 void Button::update() {
     bool reading = digitalRead(_pin) == _activeState;  // Use _activeState
     unsigned long currentTime = millis();
